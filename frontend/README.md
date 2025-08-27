@@ -13,7 +13,7 @@ yarn install
 Start the dev server:
 
 ```bash
-yarn dev
+yarn run start:dev
 ```
 
 Build the app for production:
