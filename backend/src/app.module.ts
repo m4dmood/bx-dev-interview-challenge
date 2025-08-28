@@ -8,6 +8,7 @@ import { BucketService } from './services/bucket/bucket.service';
 import { FileController } from './controllers/file/file.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileEntity } from './entities/file.entity';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { FileEntity } from './entities/file.entity';
         retryAttempts: 10,
         retryDelay: 3000,
       }),
-      TypeOrmModule.forFeature([FileEntity])
+      TypeOrmModule.forFeature([FileEntity]),
+      AuthModule
   ],
   controllers: [AppController, FileController],
   providers: [AppService, FileService, BucketService],

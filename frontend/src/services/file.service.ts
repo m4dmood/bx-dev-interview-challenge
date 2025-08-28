@@ -1,9 +1,13 @@
 export class FileService {
 
 baseUrl = 'http://localhost:3000/api';
+token = localStorage.getItem("authToken");
+headers = {
+    Authorization: `Bearer ${this.token}`,
+};
 
     async downloadFile(s3Key: string, filename: string) {
-        const response = await fetch(`${this.baseUrl}/file/${s3Key}/download`);
+        const response = await fetch(`${this.baseUrl}/file/${s3Key}/download`, {headers: this.headers});
         if (!response.ok) {
             throw new Error('Download failed');
         }
@@ -21,7 +25,7 @@ baseUrl = 'http://localhost:3000/api';
     }
 
     async findAll() {
-        const response = await fetch(`${this.baseUrl}/file/all`);
+        const response = await fetch(`${this.baseUrl}/file/all`, {headers: this.headers});
 
         if (!response.ok) {
             const text = await response.text();
@@ -40,8 +44,9 @@ baseUrl = 'http://localhost:3000/api';
 
         try {
             const response = await fetch(`${this.baseUrl}/file/upload`, {
-            method: "POST",
-            body: formData,
+                headers: this.headers,
+                method: "POST",
+                body: formData,
             });
 
             const result = await response.json();

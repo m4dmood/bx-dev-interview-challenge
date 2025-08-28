@@ -24,6 +24,7 @@ export default function UploadDialog({ open, onClose }: UploadDialogProps) {
     if (!file) return alert("Select a file");
     console.log("Ready to upload:", file);
     await fileService.upload(file);
+    setFile(null);
     onClose();
   };
 
@@ -35,7 +36,10 @@ export default function UploadDialog({ open, onClose }: UploadDialogProps) {
         {file && <p>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</p>}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={() => {
+          setFile(null);
+          onClose();
+          }}>Cancel</Button>
         <Button variant="contained" color="primary" onClick={handleSubmit}>
           Submit
         </Button>
