@@ -6,26 +6,62 @@ import {
   AppBar,
   Box,
   Button,
-  Card,
-  CardActions,
-  CardContent,
+  ButtonGroup,
   Container,
   CssBaseline,
-  Paper,
+  Icon,
+  modalClasses,
   StyledEngineProvider,
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableRow,
   ThemeProvider,
   Toolbar,
   Typography,
 } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import UploadIcon from '@mui/icons-material/Upload';
 import theme from "./theme";
-import { useMemo } from "react";
-import { ExampleService } from "./services/example.service";
+import { useEffect, useState } from "react";
+import { FileService } from "./services/file.service";
+import UploadDialog from "./UploadDialog";
 
 function App() {
-  const exampleService = useMemo(function initExampleService() {
-    return new ExampleService();
+  const fileService = new FileService();
+  const [fileList, setFileList] = useState<any[]>([]);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+
+  useEffect(() => {
+    const loadFiles = async () => {
+      try {
+        const files = await fileService.findAll();
+        setFileList(files);
+      } catch (e) {
+        console.error("Errore nel caricamento dei file:", e);
+      }
+    };
+
+    loadFiles();
   }, []);
+
+  const download = async (s3Key: string, filename: string) => {
+    await fileService.downloadFile(s3Key, filename);
+  }
+
+  const formatSize = (bytes: number): string => {
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  };
+
+  const formatDate = (dateString: string | Date): string => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
   return (
     <StyledEngineProvider injectFirst>
@@ -37,90 +73,47 @@ function App() {
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 BonusX Interview Challenge
               </Typography>
+              <Button style={{ margin: '0 10px 0 10px' }}
+                variant="contained"
+                color="info"
+                startIcon={<UploadIcon/>}
+                onClick={() => setShowUploadDialog(true)}>
+                Upload
+              </Button>
               <Button color="inherit">Login</Button>
             </Toolbar>
-          </AppBar>
+          </AppBar>  
 
-          <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Grid container spacing={3}>
-              <Grid size={12}>
-                <Paper sx={{ p: 2, mb: 3 }}>
-                  <Typography variant="h4" gutterBottom>
-                    Benvenuto nell'applicazione
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Questa è l'impostazione iniziale per l'app con Material-UI
-                    configurato correttamente.
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h5" component="div">
-                      Funzionalità 1
-                    </Typography>
-                    <Typography sx={{ mb: 1.5 }} color="text.secondary">
-                      Descrizione della prima funzionalità
-                    </Typography>
-                    <Typography variant="body2">
-                      Qui puoi aggiungere la tua prima funzionalità. Material-UI
-                      è ora configurato e funzionante.
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button size="small">Scopri di più</Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h5" component="div">
-                      Funzionalità 2
-                    </Typography>
-                    <Typography sx={{ mb: 1.5 }} color="text.secondary">
-                      Descrizione della seconda funzionalità
-                    </Typography>
-                    <Typography variant="body2">
-                      Qui puoi aggiungere la tua seconda funzionalità. Tutti i
-                      componenti Material-UI sono disponibili.
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button
-                      size="small"
-                      onClick={async () => {
-                        const { message } = await exampleService.getMessage();
-                        alert(message);
-                      }}
-                    >
-                      Cliccami per fare una chiamata API
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-
-              <Grid size={12}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Stato dell'applicazione
-                  </Typography>
-                  <Typography variant="body2">
-                    ✅ Material-UI configurato correttamente
-                    <br />
-                    ✅ Tema personalizzabile
-                    <br />
-                    ✅ Font Roboto caricato
-                    <br />
-                    ✅ Layout responsivo
-                    <br />✅ Componenti base implementati
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
+          <Container maxWidth="lg" sx={{ mt: 4, mb: 4, justifyContent: "center" }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>File</TableCell>
+                  <TableCell>Size</TableCell>
+                  <TableCell>Uploaded on</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              {fileList.length > 0 && <TableBody>
+                {fileList.map(f => {
+                  return <TableRow key={f.id}>
+                          <TableCell>{f.filename}</TableCell>
+                          <TableCell>{formatSize(f.size)}</TableCell>
+                          <TableCell>{formatDate(f.uploadedOn)}</TableCell>
+                          <TableCell>
+                            <ButtonGroup>
+                              <Button onClick={() => download(f.s3Key, f.filename)}>Download</Button>
+                            </ButtonGroup>
+                          </TableCell>
+                         </TableRow>;
+                })}
+              </TableBody>}
+              <TableFooter>
+                
+              </TableFooter>
+            </Table>
+            {fileList.length === 0 && <Typography variant="body1" sx={{ mt: 4, display: 'block', textAlign: 'center', color: 'gray', fontSize: '36px' }}>No files uploaded yet</Typography>}
+            <UploadDialog open={showUploadDialog} onClose={() => setShowUploadDialog(false)}/>
           </Container>
         </Box>
       </ThemeProvider>

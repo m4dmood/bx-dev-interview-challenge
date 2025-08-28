@@ -17,7 +17,8 @@ export class FileService implements IFileService {
         const file = this.fileRepository.create({
             filename: payload.filename,
             size: payload.size,
-            s3Key: s3Key
+            s3Key: s3Key,
+            uploadedOn: new Date()
         });
 
         return this.fileRepository.save(file);
@@ -29,6 +30,11 @@ export class FileService implements IFileService {
 
     async findById(id: string): Promise<FileEntity | undefined> {
         const res = await this.fileRepository.findOne({ where: { id } });
+        if (res) return res;
+    }
+
+    async findByKey(key: string): Promise<FileEntity | undefined> {
+        const res = await this.fileRepository.findOne({ where: { s3Key: key } });
         if (res) return res;
     }
 }

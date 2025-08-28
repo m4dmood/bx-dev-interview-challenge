@@ -1,9 +1,11 @@
 import { BucketService } from '@/services/bucket/bucket.service';
 import { FileService } from '@/services/file/file.service';
-import { Controller, Get, Header, NotFoundException, Param, Post, StreamableFile, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Header, NotFoundException, Param, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { Express } from 'express';
+import { Express, Response } from 'express';
 import { UploadFileDto } from '@/dtos/upload.file.dto';
+import { FileEntity } from '@/entities/file.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('file')
 export class FileController {
@@ -21,6 +23,7 @@ export class FileController {
     }
 
     @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
     async upload(@UploadedFile() file: Express.Multer.File) {
         const s3Key = `${uuidv4()}-${file.originalname}`;
         await this.bucketService.uploadFile(s3Key, file.buffer);
@@ -33,8 +36,8 @@ export class FileController {
 
     @Get(':id/download')
     @Header('Content-Type', 'application/octet-stream')
-    async downloadFile(@Param('id') id: string): Promise<StreamableFile> {
-        const file = await this.fileService.findById(id);
+    async downloadFile(@Param('id') id: string, @Res() res: Response) {
+        const file = await this.fileService.findByKey(id);
         if (!file) {
             throw new NotFoundException('File not found');
         }
@@ -42,15 +45,17 @@ export class FileController {
         const { stream, contentType, contentLength } =
         await this.bucketService.getFile(file.s3Key);
 
-        return new StreamableFile(stream, {
-            type: contentType || 'application/octet-stream',
-            disposition: `attachment; filename="${file.filename}"`,
-            length: contentLength,
+        res.set({
+            'Content-Type': contentType || 'application/octet-stream',
+            'Content-Disposition': `attachment; filename="${file.filename}"`,
+            'Content-Length': contentLength,
         });
+
+        stream.pipe(res);
     }
 
     @Get('all')
-    async retrieveAll() {
+    async retrieveAll(): Promise<FileEntity[]> {
         return await this.fileService.retrieveAll();
     }
 }

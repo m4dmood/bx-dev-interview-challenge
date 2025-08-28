@@ -20,4 +20,7 @@ export class FileEntity implements IFileEntity {
 
     @Column()
     s3Key: string;
+
+    @Column()
+    uploadedOn: Date;
 }

@@ -11,17 +11,20 @@ export class BucketService implements IBucketService {
         const region = process.env.AWS_REGION;
         const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
         const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+        const endpoint = process.env.S3_ENDPOINT;
 
-        if (!region || !accessKeyId || !secretAccessKey) {
+        if (!region || !accessKeyId || !secretAccessKey || !endpoint) {
             throw new Error('AWS environment variables are missing!');
         }
 
         this.s3 = new S3Client({
-            region: region,
+            region,
+            endpoint,
             credentials: {
                 accessKeyId,
                 secretAccessKey
             },
+            forcePathStyle: true,
         });
     }
     
@@ -35,25 +38,25 @@ export class BucketService implements IBucketService {
     }
 
     async getFile(key: string): Promise<{
-    stream: Readable;
-    contentType?: string;
-    contentLength?: number;
-  }> {
-    const command = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key,
-    });
+      stream: Readable;
+      contentType?: string;
+      contentLength?: number;
+    }> {
+      const command = new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: key,
+      });
 
-    const response = await this.s3.send(command);
+      const response = await this.s3.send(command);
 
-    if (!response.Body || !(response.Body instanceof Readable)) {
-      throw new Error('Invalid file stream');
-    }
+      if (!response.Body || !(response.Body instanceof Readable)) {
+        throw new Error('Invalid file stream');
+      }
 
-    return {
-      stream: response.Body as Readable,
-      contentType: response.ContentType,
-      contentLength: response.ContentLength,
-    };
+      return {
+        stream: response.Body as Readable,
+        contentType: response.ContentType,
+        contentLength: response.ContentLength,
+      };
   }
 }
