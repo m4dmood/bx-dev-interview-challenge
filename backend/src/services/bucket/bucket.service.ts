@@ -29,10 +29,14 @@ export class BucketService implements IBucketService {
     }
     
     async uploadFile(s3Key: string, data: Buffer): Promise<PutObjectCommandOutput> {
+        const hash = crypto.createHash('sha256').update(file).digest('hex');
         const command = new PutObjectCommand({
             Bucket: process.env.S3_BUCKET_NAME!,
             Key: s3Key,
             Body: data,
+            Metadata: {
+              'sha256-hash': hash
+            }
             });
         return this.s3.send(command);
     }
@@ -58,5 +62,13 @@ export class BucketService implements IBucketService {
         contentType: response.ContentType,
         contentLength: response.ContentLength,
       };
+  }
+
+  async getHash(bucket: string, key: string) {
+    const headParams = {
+      Bucket: bucket,
+      Key: key
+    };
+    return this.s3.headObject(headParams).promise();
   }
 }

@@ -12,6 +12,13 @@ function FilesPage() {
   const [fileList, setFileList] = useState<any[]>([]);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{
+    isValid: boolean;
+    expectedHash: string;
+    actualHash: string;
+  } | null>(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +36,43 @@ function FilesPage() {
 
   const download = async (s3Key: string, filename: string) => {
     await fileService.downloadFile(s3Key, filename);
+  }
+
+  const verifyFile = async (file: File, fileKey: string) => {
+      setIsVerifying(true);
+      try {
+        // Ottieni l'hash atteso dal server
+        const response = await fetch(`/api/file/${fileKey}/hash`);
+        const { hash: expectedHash } = await response.json();
+
+        // Calcola l'hash del file scaricato
+        const actualHash = await calculateFileHash(file);
+
+        const isValid = expectedHash === actualHash;
+        setVerificationResult({
+          isValid,
+          expectedHash,
+          actualHash
+        });
+
+        return isValid;
+      } catch (error) {
+        console.error('Errore durante la verifica:', error);
+        return false;
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    return { verifyFile, isVerifying, verificationResult };
+  };
+
+  // Funzione per calcolare l'hash lato client
+  async function calculateFileHash(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   const formatSize = (bytes: number): string => {

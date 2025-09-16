@@ -58,6 +58,22 @@ export class FileController {
     }
 
     @UseGuards(AuthGuard('jwt'))
+    @Get('file/:key/hash')
+    async getFileHash(@Param('key') key: string) {
+        const headParams = {
+            Bucket: 'your-bucket',
+            Key: key
+        };
+        
+        const result = await this.bucketService.getHash(headParams.Bucket, headParams.Key);
+        return {
+            hash: result.Metadata['sha256-hash'],
+            lastModified: result.LastModified,
+            size: result.ContentLength
+        };
+    }
+
+    @UseGuards(AuthGuard('jwt'))
     @Get('all')
     async retrieveAll(): Promise<FileEntity[]> {
         return await this.fileService.retrieveAll();
